@@ -1,0 +1,183 @@
+1) Student DB
+
+i) db.students.aggregate({ $group: { _id: "$semester", average_cgpa: { $avg: "$cgpa" }}}, { $match: { dept_name: "CSE",average_cgpa: { $gt: 7.5  }}})
+
+	output: { "_id" : "VI", dept_name: "CSE","average_cgpa" : 8.866666666666667 }
+
+ii) mongoexport --host localhost --db lab3 --collection students --csv --out /home/bmsce/output.txt --fields "name","usn","semester","dept_name","cgpa","hobbies"
+
+	output:	2022-04-18T14:39:14.075+0530	csv flag is deprecated; please use --type=csv instead
+			2022-04-18T14:39:14.075+0530	connected to: localhost
+			2022-04-18T14:39:14.076+0530	exported 6 records
+			> cat output.txt
+				name,usn,semester,dept_name,cgpa,hobbies
+				Sravan,1BM19CS068,VI,CSE,8,"[""gaming"",""basketball""]"
+				Harshil,1BM19CS057,VI,CSE,9.8,"[""football"",""painting""]"
+				Rahul,1BM19CS069,VI,CSE,8.8,"[""movies"",""driving""]"
+				Rajiv,1BM19CS214,VII,ISE,7,"[""netflix"",""cycling""]"
+				Shreya,1BM19CS420,VII,ISE,6,"[""painting"",""comedy""]"
+				Medha,1BM19CS220,VII,CSE,9,"[""dancing"",""writing""]"
+				
+				
+3) Student Collection
+
+i) db.student.find({},{ _id: 0, studname: 1 }).pretty()
+	output: { "studname" : "hamid" }
+			{ "studname" : "Harshil" }
+			{ "studname" : "Varun" }
+			{ "studname" : "Anitej" }
+			
+ii) db.student.find({ _id: 1  },{ _id: 1, studname: 1, grade: 1 }).pretty()
+	output: { "_id" : 1, "studname" : "hamid", "grade" : "IX" }
+
+iii) db.student.find({ grade: { $ne: "VIII" }  })
+	output: { "_id" : 1, "studname" : "hamid", "grade" : "IX", "hobbies" : [ "basketball", "gaming" ], "doj" : "01-03-2018" }
+			{ "_id" : 2, "studname" : "Harshil", "grade" : "X", "hobbies" : [ "football", "painting" ], "doj" : "05-03-2018" }
+			{ "_id" : 3, "studname" : "Varun", "grade" : "VII", "hobbies" : [ "cricket", "painting" ], "doj" : "07-03-2018" }
+		
+iv)> db.student.find({ studname: "Varun", hobbies: { $in: ["cricket"] }})
+		output: { "_id" : 3, "studname" : "Varun", "grade" : "VII", "hobbies" : [ "cricket", "painting" ], "doj" : "07-03-2018" }
+		
+v) > db.student.find({ studname: /j$/  })
+			output: { "_id" : 4, "studname" : "Anitej", "grade" : "VIII", "hobbies" : [ "comedy", "dancing" ], "doj" : "09-03-2018" }		
+		
+
+2) Bank Collection
+
+	i) 	> db.bank.insert({ name: "hamid", type: "current", transactions: ["+20", "+100", "+30"] })
+		WriteResult({ "nInserted" : 1 })
+		> db.bank.insert({ name: "Harshil", type: "savings", transactions: ["+90", "-90", "+200"] })
+		WriteResult({ "nInserted" : 1 })
+		> db.bank.insert({ name: "Jathin", type: "savings", transactions: ["-90", "-90", "+200"] })
+		WriteResult({ "nInserted" : 1 })		
+
+	ii) 	> db.bank.update({type: "savings"}, { $pop: { transactions: 1  }  })
+			WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+			
+		{
+			"_id" : ObjectId("625d30c83017e9d4fb2bfdf7"),
+			"name" : "Harshil",
+			"type" : "savings",
+			"transactions" : [
+				"+90"
+			]
+		}
+
+		> db.bank.update({name: "hamid"}, { $pull: { transactions: { $in: ["+30"]  }  }  })
+		WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+		> db.bank.find().pretty()
+		{
+			"_id" : ObjectId("625d30ac3017e9d4fb2bfdf6"),
+			"name" : "hamid",
+			"type" : "current",
+			"transactions" : [
+				"+20",
+				"+100"
+			]
+		}
+
+	iii) > db.bank.createIndex({ name: 1  })
+		{
+			"createdCollectionAutomatically" : false,
+			"numIndexesBefore" : 1,
+			"numIndexesAfter" : 2,
+			"ok" : 1
+		}
+		
+		db.bank.getIndexes()
+		[
+			{
+				"v" : 2,
+				"key" : {
+					"_id" : 1
+				},
+				"name" : "_id_",
+				"ns" : "lab3.bank"
+			},
+			{
+				"v" : 2,
+				"key" : {
+					"name" : 1
+				},
+				"name" : "name_1",
+				"ns" : "lab3.bank"
+			}
+		]
+
+
+	iv) > db.bank.find().pretty()
+			{
+				"_id" : ObjectId("625d30ac3017e9d4fb2bfdf6"),
+				"name" : "Sravan",
+				"type" : "current",
+				"transactions" : [
+					"+20",
+					"+100"
+				]
+			}
+			{
+				"_id" : ObjectId("625d30c83017e9d4fb2bfdf7"),
+				"name" : "Harshil",
+				"type" : "savings",
+				"transactions" : [
+					"+90"
+				]
+			}
+			{
+				"_id" : ObjectId("625d30d23017e9d4fb2bfdf8"),
+				"name" : "Jathin",
+				"type" : "savings",
+				"transactions" : [
+					"-90",
+					"-90",
+					"+200"
+				]
+			}
+
+	v) > db.bank.update({ name: "Harshil" }, { type:"current"  })
+		WriteResult({ "nMatched" : 1, "nUpserted" : 0, "nModified" : 1 })
+		> db.bank.find().pretty()
+		{
+			"_id" : ObjectId("625d30ac3017e9d4fb2bfdf6"),
+			"name" : "hamid",
+			"type" : "current",
+			"transactions" : [
+				"+20",
+				"+100"
+			]
+		}
+		{ 	"_id" : ObjectId("625d30c83017e9d4fb2bfdf7"), 
+			"name" : "Harshil",
+			"type" : "current"
+			"transactions" : [
+				"-90",
+			] 
+		}
+		{
+			"_id" : ObjectId("625d30d23017e9d4fb2bfdf8"),
+			"name" : "Jathin",
+			"type" : "savings",
+			"transactions" : [
+				"-90",
+				"-90",
+				"+200"
+			]
+		}
+
+4) Faculty Collection
+
+	i, ii ) 	db.faculty.insert({ name: "hamid", designation: "Professor", dept: "CSE", age: 31, salary: 700000, specialization: ["AI", "ML"]  })
+			WriteResult({ "nInserted" : 1 })
+			> db.faculty.insert({ name: "Harshil", designation: "Professor", dept: "CSE", age: 40, salary: 1500000, specialization: ["AI", "CN"]  })
+			WriteResult({ "nInserted" : 1 })
+			> db.faculty.insert({ name: "Vardhaman", designation: "Professor", dept: "MECH", age: 69, salary: 2500000, specialization: ["MG","LE"]  })
+			WriteResult({ "nInserted" : 1 })
+			> db.faculty.insert({ name: "Basavaraj", designation: "Professor", dept: "MECH", age: 30, salary: 500000, specialization: ["AM","3DP"]  })
+			WriteResult({ "nInserted" : 1 })
+
+	
+	iii) 
+	
+	
+
+		

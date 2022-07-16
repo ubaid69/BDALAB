@@ -1,0 +1,110 @@
+bmsce@bmsce-Precision-T1700:~$ cqlsh
+Connected to Test Cluster at 127.0.0.1:9042.
+[cqlsh 5.0.1 | Cassandra 3.11.4 | CQL spec 3.4.4 | Native protocol v4]
+Use HELP for help.
+cqlsh> create keyspace library with replication={'class':'SimpleStrategy', 'replication_factor':1};
+AlreadyExists: Keyspace 'library' already exists
+cqlsh> create keyspace library_214 with replication={'class':'SimpleStrategy', 'replication_factor':1};
+cqlsh> describe keyspaces;
+
+stud1          system_auth  employ              employee       drivers    
+harshita       newstudents  students1           system_traces  library_214
+bigcassandra   library      student             lib1         
+system_schema  system       system_distributed  employee_214 
+
+cqlsh> create table lib_info(stud_id int PRIMARY KEY, counter_val  counter, stud_name text, book_name text, book_id int, issue_date date);
+InvalidRequest: Error from server: code=2200 [Invalid query] message="No keyspace has been specified. USE a keyspace, or explicitly specify keyspace.tablename"
+cqlsh> use library;
+cqlsh:library> use library_214;
+cqlsh:library_214> create table lib_info(stud_id int PRIMARY KEY, counter_val  counter, stud_name text, book_name text, book_id int, issue_date date);
+InvalidRequest: Error from server: code=2200 [Invalid query] message="Cannot mix counter and non counter columns in the same table"
+cqlsh:library_214> create table lib_info(stud_id int , counter_val  counter, stud_name text, book_name text, book_id int, issue_date date, PRIMARY KEY (stud_id,stud_name,book_name,book_id,issue_date);
+SyntaxException: line 1:180 mismatched input ';' expecting ')' (...stud_id,stud_name,book_name,book_id,issue_date)[;])
+cqlsh:library_214> create table lib_info(stud_id int , counter_val  counter, stud_name text, book_name text, book_id int, issue_date date, PRIMARY KEY (stud_id,stud_name,book_name,book_id,issue_date));
+cqlsh:library_214> begin batch
+               ... insert into lib_info(stud_id,stud_name,book_name,book_id,issue_date) values (121,'rohit','java',1140,'2022-05-07')
+               ... apply batch;
+InvalidRequest: Error from server: code=2200 [Invalid query] message="INSERT statements are not allowed on counter tables, use UPDATE instead"
+cqlsh:library_214> update lib_info set counter_val=counter_val+1 where stud_id=1 and stud_name='rohit' and book_name='oomd' and book_id=121 and issue_date='2022-05-06';
+cqlsh:library_214> select * from lib_info;
+
+ stud_id | stud_name | book_name | book_id | issue_date | counter_val
+---------+-----------+-----------+---------+------------+-------------
+       1 |    rohit  |      oomd |     121 | 2022-05-06 |           1
+
+(1 rows)
+cqlsh:library_214> update lib_info set counter_val=counter_val+1 where stud_id=2 and stud_name='trivedi' and book_name='bda' and book_id=122 and issue_date='2022-04-06';
+cqlsh:library_214> update lib_info set counter_val=counter_val+1 where stud_id=3 and stud_name='swaroop' and book_name='java' and book_id=123 and issue_date='2022-04-10';
+cqlsh:library_214> update lib_info set counter_val=counter_val+1 where stud_id=4 and stud_name='nikhil' and book_name='ml' and book_id=124 and issue_date='2022-03-10';
+cqlsh:library_214> select * from lib_info;
+
+ stud_id | stud_name | book_name | book_id | issue_date | counter_val
+---------+-----------+-----------+---------+------------+-------------
+       1 |     rohit |      oomd |     121 | 2022-05-06 |           1
+       2 |   trivedi |       bda |     122 | 2022-04-06 |           1
+       4 |    nikhil |        ml |     124 | 2022-03-10 |           1
+       3 |   swaroop |      java |     123 | 2022-04-10 |           1
+
+(4 rows)
+cqlsh:library_214> update lib_info set counter_val=counter_val+1 where stud_id=2 and stud_name='trivedi' and book_name='bda' and book_id=122 and issue_date='2022-04-06';
+cqlsh:library_214> select * from lib_info;
+
+ stud_id | stud_name | book_name | book_id | issue_date | counter_val
+---------+-----------+-----------+---------+------------+-------------
+       1 |     rohit |      oomd |     121 | 2022-05-06 |           1
+       2 |   trivedi |       bda |     122 | 2022-04-06 |           2
+       4 |    nikhil |        ml |     124 | 2022-03-10 |           1
+       3 |   swaroop |      java |     123 | 2022-04-10 |           1
+
+(4 rows)
+cqlsh:library_214> select * from lib_info where counter_val=2;
+InvalidRequest: Error from server: code=2200 [Invalid query] message="Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"
+cqlsh:library_214> select * from lib_info where counter_val=2 allow filtering;
+
+ stud_id | stud_name | book_name | book_id | issue_date | counter_val
+---------+-----------+-----------+---------+------------+-------------
+       2 |   trivedi |       bda |     122 | 2022-04-06 |           2
+
+(1 rows)
+cqlsh:library_214> copy lib_info(stud_id,counter_val,stud_name,book_name,book_id,issue_date) to '/home/bmsce/desktop/lib_data.csv';
+Using 11 child processes
+Can't open '/home/bmsce/desktop/lib_data.csv' for writing: [Errno 2] No such file or directory: '/home/bmsce/desktop/lib_data.csv'
+cqlsh:library_214> copy lib_info(stud_id,counter_val,stud_name,book_name,book_id,issue_date) to '/home/bmsce/Desktop/lib_data';
+Using 11 child processes
+
+Starting copy of library_214.lib_info with columns [stud_id, counter_val, stud_name, book_name, book_id, issue_date].
+Processed: 4 rows; Rate:      24 rows/s; Avg. rate:      24 rows/s
+4 rows exported to 1 files in 0.177 seconds.
+cqlsh:library_214> create table lib_info1(stud_id int , counter_val  counter, stud_name text, book_name text, book_id int, issue_date date, PRIMARY KEY (stud_id,stud_name,book_name,book_id,issue_date));
+cqlsh:library_214> copy lib_info(stud_id,counter_val,stud_name,book_name,book_id,issue_date) from 'lib_data.csv';
+Using 11 child processes
+
+Starting copy of library_214.lib_info with columns [stud_id, counter_val, stud_name, book_name, book_id, issue_date].
+Failed to import 0 rows: IOError - Can't open 'lib_data.csv' for reading: no matching file found,  given up after 1 attempts
+Processed: 0 rows; Rate:       0 rows/s; Avg. rate:       0 rows/s
+0 rows imported from 0 files in 0.149 seconds (0 skipped).
+cqlsh:library_214> copy lib_info1(stud_id,counter_val,stud_name,book_name,book_id,issue_date) from '/home/bmsce/Desktop/lib_data.csv';
+Using 11 child processes
+
+Starting copy of library_214.lib_info1 with columns [stud_id, counter_val, stud_name, book_name, book_id, issue_date].
+Failed to import 0 rows: IOError - Can't open '/home/bmsce/Desktop/lib_data.csv' for reading: no matching file found,  given up after 1 attempts
+Processed: 0 rows; Rate:       0 rows/s; Avg. rate:       0 rows/s
+0 rows imported from 0 files in 0.156 seconds (0 skipped).
+cqlsh:library_214> copy lib_info1(stud_id,counter_val,stud_name,book_name,book_id,issue_date) from '/home/bmsce/Desktop/lib_data';
+Using 11 child processes
+
+Starting copy of library_214.lib_info1 with columns [stud_id, counter_val, stud_name, book_name, book_id, issue_date].
+Processed: 4 rows; Rate:       7 rows/s; Avg. rate:      11 rows/s
+4 rows imported from 1 files in 0.375 seconds (0 skipped).
+cqlsh:library_214> select * from lib_info1;
+
+ stud_id | stud_name | book_name | book_id | issue_date | counter_val
+---------+-----------+-----------+---------+------------+-------------
+       1 |     rohit |      oomd |     121 | 2022-05-06 |           1
+       2 |   trivedi |       bda |     122 | 2022-04-06 |           2
+       4 |    nikhil |        ml |     124 | 2022-03-10 |           1
+       3 |   swaroop |      java |     123 | 2022-04-10 |           1
+
+(4 rows)
+cqlsh:library_214> 
+cqlsh:library_214> 

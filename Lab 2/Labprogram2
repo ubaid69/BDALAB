@@ -1,0 +1,172 @@
+create keyspace employee_214 with replication={'class':'SimpleStrategy','replication_factor':1};
+cqlsh> describe keyspaces;
+
+stud1          system_auth  employ              employee       drivers
+harshita       newstudents  students1           system_traces
+employee_214   library      student             lib1         
+system_schema  system       system_distributed  bigcassandra 
+
+cqlsh> select * from system_schema.keyspaces;
+
+ keyspace_name      | durable_writes | replication
+--------------------+----------------+-------------------------------------------------------------------------------------
+            student |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+        system_auth |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+      system_schema |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}
+            library |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+       bigcassandra |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '3'}
+               lib1 |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+       employee_214 |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+              stud1 |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+          students1 |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+        newstudents |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+ system_distributed |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '3'}
+             system |           True |                             {'class': 'org.apache.cassandra.locator.LocalStrategy'}
+            drivers |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+      system_traces |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '2'}
+           harshita |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '3'}
+           employee |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+             employ |           True | {'class': 'org.apache.cassandra.locator.SimpleStrategy', 'replication_factor': '1'}
+
+(17 rows)
+cqlsh> use employee_214;
+cqlsh:employee_214> create table emp_info ( emp_id int, emp_name text, designation text, DOJ timestamp, salary double, dept_name text, PRIMARY KEY(emp_id, salary));
+cqlsh:employee_214> describe tables;
+
+emp_info
+
+cqlsh:employee_214> describe table emp_info;
+
+CREATE TABLE employee_214.emp_info (
+    emp_id int,
+    salary double,
+    dept_name text,
+    designation text,
+    doj timestamp,
+    emp_name text,
+    PRIMARY KEY (emp_id, salary)
+) WITH CLUSTERING ORDER BY (salary ASC)
+    AND bloom_filter_fp_chance = 0.01
+    AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'}
+    AND comment = ''
+    AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'}
+    AND compression = {'chunk_length_in_kb': '64', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'}
+    AND crc_check_chance = 1.0
+    AND dclocal_read_repair_chance = 0.1
+    AND default_time_to_live = 0
+    AND gc_grace_seconds = 864000
+    AND max_index_interval = 2048
+    AND memtable_flush_period_in_ms = 0
+    AND min_index_interval = 128
+    AND read_repair_chance = 0.0
+    AND speculative_retry = '99PERCENTILE';
+
+cqlsh:employee_214> begin batch
+                ... insert into emp_info(emp_id,emp_name,designation,DOJ,salary,dept_name) values(1,'Rohit','manager','2021-02-12',5000,'webdev')
+                ... insert into emp_info(emp_id,emp_name,designation,DOJ,salary,dept_name) values(2,'Surya','clerk','2022-03-22',10000,'datacenter')
+                ... insert into emp_info(emp_id,emp_name,designation,DOJ,salary,dept_name) values(3,'suresh','COE','2019-04-10',100000,'marketing')
+                ... apply batch;
+
+
+cqlsh:employee_214> select * from emp_info;
+
+ emp_id | salary | dept_name  | designation | doj                             | emp_name
+--------+--------+------------+-------------+---------------------------------+----------
+      1 |   5000 |     webdev |     manager | 2021-02-11 18:30:00.000000+0000 |   Rohit
+      2 |  10000 | datacenter |       clerk | 2022-03-21 18:30:00.000000+0000 |   Surya
+      3 |  1e+05 |  marketing |         COE | 2019-04-09 18:30:00.000000+0000 |   suresh
+
+(3 rows)
+cqlsh:employee_214> update emp_info set emp_name='rahul', dept_name='advertising' where emp_id=3;
+InvalidRequest: Error from server: code=2200 [Invalid query] message="Some clustering keys are missing: salary"
+cqlsh:employee_214> update emp_info set emp_name='rahul', dept_name='advertising' where emp_id=3 and salary=100000;
+cqlsh:employee_214> select * from emp_info;
+
+ emp_id | salary | dept_name   | designation | doj                             | emp_name
+--------+--------+-------------+-------------+---------------------------------+----------
+      1 |   5000 |      webdev |     manager | 2021-02-11 18:30:00.000000+0000 |   Rohit
+      2 |  10000 |  datacenter |       clerk | 2022-03-21 18:30:00.000000+0000 |   Surya
+      3 |  1e+05 | advertising |         COE | 2019-04-09 18:30:00.000000+0000 |    rahul
+
+(3 rows)
+cqlsh:employee_214> select * from emp_info order by salary desc;
+InvalidRequest: Error from server: code=2200 [Invalid query] message="ORDER BY is only supported when the partition key is restricted by an EQ or an IN."
+
+cqlsh:employee_214> alter table emp_info add projects set <text>;
+
+cqlsh:employee_214> select * from emp_info;
+
+ emp_id | salary | dept_name   | designation | doj                             | emp_name | projects
+--------+--------+-------------+-------------+---------------------------------+----------+----------
+      1 |   5000 |      webdev |     manager | 2021-02-11 18:30:00.000000+0000 |   Rohit |     null
+      2 |  10000 |  datacenter |       clerk | 2022-03-21 18:30:00.000000+0000 |   Surya |     null
+      3 |  1e+05 | advertising |         COE | 2019-04-09 18:30:00.000000+0000 |    rahul |     null
+
+(3 rows)
+cqlsh:employee_214> update emp_info set projects={'data science'} where emp_id=1;
+InvalidRequest: Error from server: code=2200 [Invalid query] message="Some clustering keys are missing: salary"
+cqlsh:employee_214> update emp_info set projects={'data science'} where emp_id=1 and salary=5000;
+cqlsh:employee_214> update emp_info set projects={'security','crypto'} where emp_id=2 and salary=1000;
+cqlsh:employee_214> update emp_info set projects={'mobile app'} where emp_id=3 and salary=10000;
+cqlsh:employee_214> select * from emp_info;
+
+ emp_id | salary | dept_name   | designation | doj                             | emp_name | projects
+--------+--------+-------------+-------------+---------------------------------+----------+------------------------
+      1 |   5000 |      webdev |     manager | 2021-02-11 18:30:00.000000+0000 |   Rohit |       {'data science'}
+      2 |   1000 |        null |        null |                            null |     null | {'crypto', 'security'}
+      2 |  10000 |  datacenter |       clerk | 2022-03-21 18:30:00.000000+0000 |   Surya |                   null
+      3 |  10000 |        null |        null |                            null |     null |         {'mobile app'}
+      3 |  1e+05 | advertising |         COE | 2019-04-09 18:30:00.000000+0000 |    rahul |                   null
+
+(5 rows)
+cqlsh:employee_214> delete from emp_info where emp_id=2 and salary=1000;
+cqlsh:employee_214> select * from emp_info;
+
+ emp_id | salary | dept_name   | designation | doj                             | emp_name | projects
+--------+--------+-------------+-------------+---------------------------------+----------+------------------
+      1 |   5000 |      webdev |     manager | 2021-02-11 18:30:00.000000+0000 |   Rohit | {'data science'}
+      2 |  10000 |  datacenter |       clerk | 2022-03-21 18:30:00.000000+0000 |   Surya |             null
+      3 |  10000 |        null |        null |                            null |     null |   {'mobile app'}
+      3 |  1e+05 | advertising |         COE | 2019-04-09 18:30:00.000000+0000 |    rahul |             null
+
+(4 rows)
+cqlsh:employee_214> delete from emp_info where emp_id=3 and salary=10000;
+cqlsh:employee_214> select * from emp_info;
+
+ emp_id | salary | dept_name   | designation | doj                             | emp_name | projects
+--------+--------+-------------+-------------+---------------------------------+----------+------------------
+      1 |   5000 |      webdev |     manager | 2021-02-11 18:30:00.000000+0000 |   Rohit | {'data science'}
+      2 |  10000 |  datacenter |       clerk | 2022-03-21 18:30:00.000000+0000 |   Surya |             null
+      3 |  1e+05 | advertising |         COE | 2019-04-09 18:30:00.000000+0000 |    rahul |             null
+
+(3 rows)
+cqlsh:employee_214> update emp_info set projects={'security','crypto'} where emp_id=2 and salary=10000;
+cqlsh:employee_214> update emp_info set projects={'mobile app'} where emp_id=3 and salary=100000;
+cqlsh:employee_214> select * from emp_info;
+
+ emp_id | salary | dept_name   | designation | doj                             | emp_name | projects
+--------+--------+-------------+-------------+---------------------------------+----------+------------------------
+      1 |   5000 |      webdev |     manager | 2021-02-11 18:30:00.000000+0000 |   Rohit |       {'data science'}
+      2 |  10000 |  datacenter |       clerk | 2022-03-21 18:30:00.000000+0000 |   Surya | {'crypto', 'security'}
+      3 |  1e+05 | advertising |         COE | 2019-04-09 18:30:00.000000+0000 |    rahul |         {'mobile app'}
+
+(3 rows)
+cqlsh:employee_214> insert into emp_info(emp_id,emp_name,designation,DOJ,salary,dept_name) values(4,'rakesh','intern','2022-04-19',1000,'marketing',{'data science'}) using TTL 18;
+InvalidRequest: Error from server: code=2200 [Invalid query] message="Unmatched column names/values"
+cqlsh:employee_214> insert into emp_info(emp_id,emp_name,designation,DOJ,salary,dept_name,projects) values(4,'rakesh','intern','2022-04-19',1000,'marketing',{'data science'}) using TTL 18;
+cqlsh:employee_214> select ttl(dept_name) from emp_info where emp_id=4;
+
+ ttl(dept_name)
+----------------
+
+(0 rows)
+cqlsh:employee_214> insert into emp_info(emp_id,emp_name,designation,DOJ,salary,dept_name,projects) values(4,'rakesh','intern','2022-04-19',1000,'marketing',{'data science'}) using TTL 50;
+cqlsh:employee_214> select ttl(dept_name) from emp_info where emp_id=4;
+
+ ttl(dept_name)
+----------------
+             46
+
+(1 rows)
+cqlsh:employee_214> select ttl(dept_name,doj) from emp_info where emp_id=4;
+SyntaxException: line 1:20 mismatched input ',' expecting ')' (select ttl(dept_name[,]...)
